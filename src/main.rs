@@ -1,6 +1,7 @@
 use std::env;
 
-use ethers::abi::ParamType;
+use ethers::abi::{ParamType, Tokenizable};
+use ethers::types::{H160, U256};
 
 enum Query {
     Proof,
@@ -40,11 +41,12 @@ fn main() {
                 ParamType::Array(Box::new(ParamType::Uint(256))),
                 ParamType::Uint(256),
             ])];
-            let Ok(tokens) = ethers::abi::decode(&params, &abi_data) else {
+            let Ok(Some(token)) = ethers::abi::decode(&params, &abi_data).map(|mut t| t.pop()) else {
                 eprintln!("Invalid active valset ABI encoded data");
                 return;
             };
-            println!("{tokens:#?}");
+            let decoded: (Vec<H160>, Vec<U256>, U256) = Tokenizable::from_token(token).unwrap();
+            println!("{decoded:#?}");
         }
         Query::Proof => {
             let params = [ParamType::Tuple(vec![
@@ -56,11 +58,13 @@ fn main() {
                     ParamType::Uint(8),
                 ]))),
             ])];
-            let Ok(tokens) = ethers::abi::decode(&params, &abi_data) else {
+            let Ok(Some(token)) = ethers::abi::decode(&params, &abi_data).map(|mut t| t.pop()) else {
                 eprintln!("Invalid valset proof ABI encoded data");
                 return;
             };
-            println!("{tokens:#?}");
+            let decoded: ([u8; 32], [u8; 32], Vec<([u8; 32], [u8; 32], u8)>) =
+                Tokenizable::from_token(token).unwrap();
+            println!("{decoded:#?}");
         }
     }
 }
